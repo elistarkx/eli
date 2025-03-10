@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My E-Commerce Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+        }
+
+        nav a {
+            color: white;
+            margin: 0 15px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        nav a:hover {
+            color: #ddd;
+        }
+
+        #content {
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        /* Product Styling */
+        .product {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px;
+            display: inline-block;
+            width: 220px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .product:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .product h3 {
+            margin: 0 0 10px;
+            color: #333;
+        }
+
+        .product p {
+            margin: 0 0 10px;
+            color: #666;
+        }
+
+        .product button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .product button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Cart and Checkout */
+        #cart-items div {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        form input {
+            display: block;
+            margin: 10px 0;
+            padding: 8px;
+            width: 250px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Animation */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .product {
+            animation: slideIn 0.5s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>My E-Commerce Store</h1>
+        <nav>
+            <a onclick="showPage('home')">Home</a>
+            <a onclick="showPage('products')">Products</a>
+            <a onclick="showPage('cart')">Cart (<span id="cart-count">0</span>)</a>
+        </nav>
+    </header>
+    <div id="content">
+        <!-- Pages will be dynamically inserted here -->
+    </div>
+
+    <script>
+        // Product data (10 pages worth, 3 products per page for simplicity)
+        const products = Array.from({ length: 30 }, (_, i) => ({
+            id: i + 1,
+            name: `Product ${i + 1}`,
+            price: 10 + (i % 10) * 10 // Prices range from 10 to 100
+        }));
+
+        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+        // Page templates
+        const pages = {
+            home: `
+                <h2>Welcome!</h2>
+                <p>Check out our amazing products <a onclick="showPage('products')">here</a>.</p>
+            `,
+            products: `
+                <h2>Our Products</h2>
+                <div>
+                    ${Array.from({ length: 10 }, (_, i) => `
+                        <a onclick="showPage('product-page-${i + 1}')">Page ${i + 1}</a>
+                    `).join(" | ")}
+                </div>
+                <div id="product-list"></div>
+            `,
+            "product-page-1": `<h2>Products Page 1</h2><div id="product-list-1"></div>`,
+            "product-page-2": `<h2>Products Page 2</h2><div id="product-list-2"></div>`,
+            "product-page-3": `<h2>Products Page 3</h2><div id="product-list-3"></div>`,
+            "product-page-4": `<h2>Products Page 4</h2><div id="product-list-4"></div>`,
+            "product-page-5": `<h2>Products Page 5</h2><div id="product-list-5"></div>`,
+            "product-page-6": `<h2>Products Page 6</h2><div id="product-list-6"></div>`,
+            "product-page-7": `<h2>Products Page 7</h2><div id="product-list-7"></div>`,
+            "product-page-8": `<h2>Products Page 8</h2><div id="product-list-8"></div>`,
+            "product-page-9": `<h2>Products Page 9</h2><div id="product-list-9"></div>`,
+            "product-page-10": `<h2>Products Page 10</h2><div id="product-list-10"></div>`,
+            cart: `
+                <h2>Your Cart</h2>
+                <div id="cart-items"></div>
+                <p>Total: $<span id="cart-total">0</span></p>
+                <button onclick="showPage('checkout')">Proceed to Checkout</button>
+            `,
+            checkout: `
+                <h2>Checkout</h2>
+                <form id="checkout-form">
+                    <input type="text" id="name" placeholder="Name" required>
+                    <input type="email" id="email" placeholder="Email" required>
+                    <button type="submit">Place Order</button>
+                </form>
+            `
+        };
+
+        // Show a specific page
+        function showPage(pageId) {
+            const content = document.getElementById("content");
+            content.innerHTML = pages[pageId] || pages.home;
+            if (pageId === "products") displayProductLinks();
+            if (pageId.startsWith("product-page-")) displayProducts(pageId);
+            if (pageId === "cart") displayCart();
+            if (pageId === "checkout") setupCheckoutForm();
+            updateCartCount();
+        }
+
+        // Update cart count
+        function updateCartCount() {
+            const cartCount = document.getElementById("cart-count");
+            if (cartCount) cartCount.textContent = cart.length;
+        }
+
+        // Display product links (on main products page)
+        function displayProductLinks() {
+            const productList = document.getElementById("product-list");
+            if (!productList) return;
+            productList.innerHTML = "<p>Select a page above to view products.</p>";
+        }
+
+        // Display products for a specific page
+        function displayProducts(pageId) {
+            const pageNum = parseInt(pageId.split("-")[2]);
+            const start = (pageNum - 1) * 3;
+            const end = start + 3;
+            const pageProducts = products.slice(start, end);
+            const productList = document.getElementById(`product-list-${pageNum}`);
+            if (!productList) return;
+
+            productList.innerHTML = "";
+            pageProducts.forEach((product, index) => {
+                const div = document.createElement("div");
+                div.className = "product";
+                div.style.animationDelay = `${index * 0.1}s`;
+                div.innerHTML = `
+                    <h3>${product.name}</h3>
+                    <p>$${product.price}</p>
+                    <button onclick="addToCart(${product.id})">Add to Cart</button>
+                `;
+                productList.appendChild(div);
+            });
+        }
+
+        // Add to cart
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            cart.push(product);
+            localStorage.setItem("cart", JSON.stringify(cart));
+            updateCartCount();
+        }
+
+        // Display cart
+        function displayCart() {
+            const cartItems = document.getElementById("cart-items");
+            const cartTotal = document.getElementById("cart-total");
+            if (!cartItems || !cartTotal) return;
+
+            cartItems.innerHTML = "";
+            cart.forEach((item, index) => {
+                const div = document.createElement("div");
+                div.innerHTML = `${item.name} - $${item.price} <button onclick="removeFromCart(${index})">Remove</button>`;
+                cartItems.appendChild(div);
+            });
+
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            cartTotal.textContent = total;
+        }
+
+        // Remove from cart
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            localStorage.setItem("cart", JSON.stringify(cart));
+            displayCart();
+            updateCartCount();
+        }
+
+        // Setup checkout form
+        function setupCheckoutForm() {
+            const form = document.getElementById("checkout-form");
+            if (!form) return;
+
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const name = document.getElementById("name").value;
+                const email = document.getElementById("email").value;
+
+                // Simulated backend response
+                const total = cart.reduce((sum, item) => sum + item.price, 0);
+                console.log(`Order from ${name} (${email}): $${total}`);
+                alert("Order placed successfully!");
+                cart = [];
+                localStorage.setItem("cart", JSON.stringify(cart));
+                showPage("home");
+            });
+        }
+
+        // Initial load
+        showPage("home");
+    </script>
+</body>
+</html>
